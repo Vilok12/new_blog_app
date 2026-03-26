@@ -2,6 +2,7 @@ import exp from "express";
 import { authenticate } from "../services/authService.js";
 import { UserTypeModel } from "../models/UserModel.js";
 import bcrypt from "bcryptjs";
+import { verifyToken } from "../middlewares/verifyToken.js";
 export const commonRouter = exp.Router();
 
 //login
@@ -57,4 +58,12 @@ commonRouter.put("/change-password", async (req, res) => {
   await account.save();
 
   res.status(200).json({ message: "Password changed successfully" });
+});
+
+//Page refresh
+commonRouter.get("/check-auth", verifyToken("USER","AUTHOR","ADMIN"), (req, res) => {
+  res.status(200).json({
+    message: "authenticated",
+    payload: req.user
+  });
 });

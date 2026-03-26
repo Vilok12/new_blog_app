@@ -2,23 +2,50 @@ import exp from "express";
 import { register, authenticate } from "../services/authService.js";
 import { ArticleModel } from "../models/ArticleModel.js";
 import { verifyToken } from "../middlewares/verifyToken.js";
+import { upload } from "../config/multer.js";
+import cloudinary from "../config/cloudinary.js";
+import { uploadToCloudinary } from "../config/cloudinaryUpload.js";
 
 export const userRoute = exp.Router();
 
 //Register user
-userRoute.post("/users", async (req, res) => {
-  //get user obj from req
-  let userObj = req.body;
-  //call register
-  const newUserObj = await register({ ...userObj, role: "USER" });
-  //send res
-  res.status(201).json({ message: "user created", payload: newUserObj });
+userRoute.post("/users", upload.single("profileImageUrl"), async (req, res, next) => {
+  let cloudinaryResult;
+
+  try {
+    //getb user obj
+    let userObj = req.body;
+
+    //  Step 1: upload image to cloudinary from memoryStorage (if exists)
+    if (req.file) {
+      cloudinaryResult = await uploadToCloudinary(req.file.buffer);
+    }
+
+    // Step 2: call existing register()
+    const newUserObj = await register({
+      ...userObj,
+      role: "USER",
+      profileImageUrl: cloudinaryResult?.secure_url,
+    });
+
+    res.status(201).json({
+      message: "user created",
+      payload: newUserObj,
+    });
+  } catch (err) {
+    // Step 3: rollback
+    if (cloudinaryResult?.public_id) {
+      await cloudinary.uploader.destroy(cloudinaryResult.public_id);
+    }
+
+    next(err); // send to your error middleware
+  }
 });
 
 //Read all articles(protected route)
 userRoute.get("/articles", verifyToken("USER"), async (req, res) => {
   //read articles of all authors which are active
-  const articles = await ArticleModel.find({ isArticleActive: true });
+  const articles = await ArticleModel.find({ isArticleActive: true }).populate("author");
   //send res
   res.status(200).json({ message: "all articles", payload: articles });
 });
@@ -46,3 +73,6 @@ userRoute.put("/articles", verifyToken("USER"), async (req, res) => {
   //send res
   res.status(200).json({ message: "comment added successfully", payload: articleWithComment });
 });
+
+//next() ---> next middleware
+//next(err) ---> error handling middleware
