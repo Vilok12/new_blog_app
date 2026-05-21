@@ -34,24 +34,27 @@ function ArticleByID() {
   const [error, setError] = useState(null);
 
   useEffect(() => {
-    if (article) return;
+  if (article) return;
 
-    const getArticle = async () => {
-      setLoading(true);
+  const getArticle = async () => {
+    setLoading(true);
 
-      try {
-        const res = await axios.get(`http://localhost:4000/user-api/article/${id}`, { withCredentials: true });
+    try {
+      const res = await axios.get(
+        `${import.meta.env.VITE_API_URL}/user-api/article/${id}`,
+        { withCredentials: true }
+      );
 
-        setArticle(res.data.payload);
-      } catch (err) {
-        setError(err.response?.data?.error);
-      } finally {
-        setLoading(false);
-      }
-    };
+      setArticle(res.data.payload);
+    } catch (err) {
+      setError(err.response?.data?.error);
+    } finally {
+      setLoading(false);
+    }
+  };
 
-    getArticle();
-  }, [id]);
+  getArticle();
+}, [id]);
 
   const formatDate = (date) => {
     return new Date(date).toLocaleString("en-IN", {
@@ -63,35 +66,34 @@ function ArticleByID() {
 
   // delete & restore article
   const toggleArticleStatus = async () => {
-    const newStatus = !article.isArticleActive;
+  const newStatus = !article.isArticleActive;
 
-    const confirmMsg = newStatus ? "Restore this article?" : "Delete this article?";
-    if (!window.confirm(confirmMsg)) return;
+  const confirmMsg = newStatus
+    ? "Restore this article?"
+    : "Delete this article?";
 
-    try {
-      const res = await axios.patch(
-        `http://localhost:4000/author-api/articles/${id}/status`,
-        { isArticleActive: newStatus },
-        { withCredentials: true },
-      );
+  if (!window.confirm(confirmMsg)) return;
 
-      console.log("SUCCESS:", res.data);
+  try {
+    const res = await axios.patch(
+      `${import.meta.env.VITE_API_URL}/author-api/articles/${id}/status`,
+      { isArticleActive: newStatus },
+      { withCredentials: true }
+    );
 
-      setArticle(res.data.payload);
+    setArticle(res.data.payload);
 
-      toast.success(res.data.message);
-    } catch (err) {
-      console.log("ERROR:", err.response);
+    toast.success(res.data.message);
+  } catch (err) {
+    const msg = err.response?.data?.message;
 
-      const msg = err.response?.data?.message;
-
-      if (err.response?.status === 400) {
-        toast(msg); // already deleted/active case
-      } else {
-        setError(msg || "Operation failed");
-      }
+    if (err.response?.status === 400) {
+      toast(msg);
+    } else {
+      setError(msg || "Operation failed");
     }
-  };
+  }
+};
 
   //edit article
   const editArticle = (articleObj) => {
@@ -100,15 +102,25 @@ function ArticleByID() {
 
   //post comment by user
   const addComment = async (commentObj) => {
-    //add artcileId
-    commentObj.articleId = article._id;
-    console.log(commentObj);
-    let res = await axios.put("http://localhost:4000/user-api/articles", commentObj, { withCredentials: true });
+  commentObj.articleId = article._id;
+
+  try {
+    let res = await axios.put(
+      `${import.meta.env.VITE_API_URL}/user-api/articles`,
+      commentObj,
+      { withCredentials: true }
+    );
+
     if (res.status === 200) {
       toast.success(res.data.message);
       setArticle(res.data.payload);
     }
-  };
+  } catch (err) {
+    toast.error(
+      err.response?.data?.message || "Failed to add comment"
+    );
+  }
+};
 
   if (loading) return <p className={loadingClass}>Loading article...</p>;
   if (error) return <p className={errorClass}>{error}</p>;
