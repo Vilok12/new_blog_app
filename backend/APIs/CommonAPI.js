@@ -7,30 +7,33 @@ export const commonRouter = exp.Router();
 
 //login
 commonRouter.post("/login", async (req, res) => {
-  //get user cred object
   let userCred = req.body;
-  //call authenticate service
+
   let { token, user } = await authenticate(userCred);
-  //save tokan as httpOnly cookie
+
   res.cookie("token", token, {
     httpOnly: true,
-    sameSite: "lax",
-    secure: false,
+    sameSite: "none",
+    secure: true,
+    maxAge: 60 * 60 * 1000,
   });
-  //send res
-  res.status(200).json({ message: "login success", payload: user });
+
+  res.status(200).json({
+    message: "login success",
+    payload: user,
+  });
 });
 
-//logout for User, Author and Admin
 commonRouter.get("/logout", (req, res) => {
-  // Clear the cookie named 'token'
   res.clearCookie("token", {
-    httpOnly: true, // Must match original  settings
-    secure: false, // Must match original  settings
-    sameSite: "lax", // Must match original  settings
+    httpOnly: true,
+    sameSite: "none",
+    secure: true,
   });
 
-  res.status(200).json({ message: "Logged out successfully" });
+  res.status(200).json({
+    message: "Logged out successfully",
+  });
 });
 
 //Change password(Protected route)
