@@ -25,48 +25,59 @@ function Register() {
   const navigate = useNavigate();
   //const []=useState()
 
-  const onUserRegister = async (newUser) => {
-    setLoading(true);
+ const onUserRegister = async (newUser) => {
+  setLoading(true);
 
-    // Create form data object
-    const formData = new FormData();
-    //get user object
-    let { role, profileImageUrl, ...userObj } = newUser;
-    console.log("role", role);
-    console.log("profileImageUrl", profileImageUrl);
-    //add all fields except profilePic to FormData object
-    Object.keys(userObj).forEach((key) => {
-      formData.append(key, userObj[key]);
-    });
-    // add profilePic to Formdata object
-    formData.append("profileImageUrl", profileImageUrl[0]);
-    //add image to formData objecte
-    try {
-      if (role === "user") {
-        //make API req to user-api
-        let resObj = await axios.post("http://localhost:4000/user-api/users", formData);
-        if (resObj.status === 201) {
-          //navigate to login
-          navigate("/login");
-        }
+  // Create form data object
+  const formData = new FormData();
+
+  // Extract role and profile image
+  let { role, profileImageUrl, ...userObj } = newUser;
+
+  // Add user fields
+  Object.keys(userObj).forEach((key) => {
+    formData.append(key, userObj[key]);
+  });
+
+  // Add profile image
+  formData.append("profileImageUrl", profileImageUrl[0]);
+
+  try {
+    // User Registration
+    if (role === "user") {
+      let resObj = await axios.post(
+        `${import.meta.env.VITE_API_URL}/user-api/users`,
+        formData
+      );
+
+      if (resObj.status === 201) {
+        navigate("/login");
       }
-      if (role === "author") {
-        //make API req to author-api
-        //make API req to user-api
-        let resObj = await axios.post("http://localhost:4000/author-api/users", formData);
-        console.log("res obj is ", resObj);
-        if (resObj.status === 201) {
-          //navigate to login
-          navigate("/login");
-        }
-      }
-    } catch (err) {
-      // console.log("err is ", err);
-      setError(err.response?.data?.error || "Registration failed");
-    } finally {
-      setLoading(false);
     }
-  };
+
+    // Author Registration
+    if (role === "author") {
+      let resObj = await axios.post(
+        `${import.meta.env.VITE_API_URL}/author-api/users`,
+        formData
+      );
+
+      if (resObj.status === 201) {
+        navigate("/login");
+      }
+    }
+  } catch (err) {
+    console.log("Error:", err);
+
+    setError(
+      err.response?.data?.error ||
+      err.message ||
+      "Registration failed"
+    );
+  } finally {
+    setLoading(false);
+  }
+};
 
   //cleanup(remove preview image from browser memory)
   useEffect(() => {
